@@ -21,6 +21,13 @@ class NumberNode:
     def string(self):
         return f'{self.val.value}'
 
+class VarAccessNode:
+    def __init__(self, val):
+        self.val = val
+
+    def string(self):
+        return f'{self.val.value}'
+
 #ie 5 + 3
 class BinaryOpNode:
     def __init__(self, left, op, right):
@@ -75,10 +82,14 @@ class myParser:
             return UnOpNode(token, factor)
 
         #if current token is number or identifier
-        elif token.type in (TokenTypes.T_INT, TokenTypes.T_FLOAT, TokenTypes.T_IDEN):
+        elif token.type in (TokenTypes.T_INT, TokenTypes.T_FLOAT):
             #return number node and advance to next token
             self.advance()
             return NumberNode(token)
+
+        elif token.type in (TokenTypes.T_IDEN):
+            self.advance()
+            return VarAccessNode(token)
 
         #if current token is LPAREN '('
         elif token.type is TokenTypes.T_LPAREN:
