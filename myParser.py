@@ -62,7 +62,7 @@ class myParser:
 
     #main function, for now assuming main node is expression
     def parse(self):
-        res = self.expr()
+        res = self.equation()
 
         #if self.currentToken.type is not TokenTypes.T_EOF:
             #error
@@ -109,9 +109,25 @@ class myParser:
     def term(self):
         return self.binOp(self.factor, (TokenTypes.T_MUL, TokenTypes.T_DIV))
 
-    #expression = {term [PLUS | MINUS] term} |  {TYPE IDENTIFIER = expression}
+    #expression = {term [PLUS | MINUS] term} | term
     def expr(self):
+        return self.binOp(self.term, (TokenTypes.T_PLUS, TokenTypes.T_MINUS))
 
+    #comparison = {NOT comparison} | {expr [logic op] expr} | expr
+    def comparison(self):
+        #if current token is NOT (!blah)
+        if self.currentToken.type is TokenTypes.T_NOT:
+            opToken = self.currentToken
+            self.advance()
+            comp = self.comparison()
+            return UnOpNode(opToken, comp)
+
+        else:
+            return self.binOp(self.expr, (TokenTypes.T_EQCOMP, TokenTypes.T_NOTEQ, TokenTypes.T_GTHAN, TokenTypes.T_LTHAN, TokenTypes.T_GTEQ, TokenTypes.T_LTEQ))
+
+
+    #equation = {TYPE IDENTIFIER = expression} | {comparison [AND | OR] comparison} | comp
+    def equation(self):
         #if current token is type keyword (int, float)
         if self.currentToken.type is TokenTypes.T_TYPE and self.currentToken.value in ('int', 'float'):
             varType = self.currentToken
@@ -128,9 +144,9 @@ class myParser:
             expr = self.expr()
 
             return VarAssignNode(varType, identifier, expr)
-
+        
         else:
-            return self.binOp(self.term, (TokenTypes.T_PLUS, TokenTypes.T_MINUS))
+            return self.binOp(self.comparison, (TokenTypes.T_AND, TokenTypes.T_OR))
 
     def binOp(self, func, ops):
         #stores left
