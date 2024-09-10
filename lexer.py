@@ -43,7 +43,7 @@ class Lexer:
         while self.current_char != None:
 
             #ignore whitespace
-            if self.current_char in ' \t':
+            if self.current_char in ' \t\n':
                 self.advance()
 
             #numbers
@@ -81,7 +81,6 @@ class Lexer:
                 tokens.append(Token(TokenTypes.T_SEMICOLON, None))
                 self.advance()
 
-        tokens.append(Token(TokenTypes.T_EOF, None))
         return tokens
 
     #function when number detected
@@ -115,6 +114,12 @@ class Lexer:
         while self.current_char != None and self.current_char in string.ascii_letters + string.digits + '_':
             word_str += self.current_char
             self.advance()
+
+        if self.current_char == '(': #function identifier
+            if word_str == 'main':
+                return Token(TokenTypes.T_MAIN, word_str)
+            else:
+                return Token(TokenTypes.T_FUNCIDEN, word_str)
 
         #checks if keyword or literal
         if word_str == 'int':

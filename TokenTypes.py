@@ -1,4 +1,5 @@
 T_IDEN      = 'IDENTIFIER'
+T_FUNCIDEN  = 'FUNCTION IDENTIFIER'
 
 T_KEYWORD   = 'KEYWORD'
 T_TYPE      = 'TYPE'
@@ -32,6 +33,7 @@ T_RBRACE    = 'RBRACE'      # }
 T_LBRACK    = 'LBRACK'      # [
 T_RBRACK    = 'RBRACK'      # ]
 T_SEMICOLON = 'SEMICOLON'   # ;
+T_COMMA     = 'COMMA'       # ,
 
 # literals
 T_INT = 'T_INT'

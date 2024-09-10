@@ -1,6 +1,7 @@
 import lexer
 import myParser
 import sys
+import TokenTypes
 
 #open file
 programLines = []
@@ -16,6 +17,8 @@ for line in programLines:
 
     #add tokens to list of tokens
     allTokens.extend(tokens)
+
+allTokens.append(lexer.Token(TokenTypes.T_EOF, None))
 
 #print list of tokens
 print("***LIST OF TOKENS***")
