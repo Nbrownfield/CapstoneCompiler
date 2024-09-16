@@ -1,82 +1,7 @@
 import lexer
 import TokenTypes
 import sys
-
-class FunctionNode:
-    def __init__(self, type, name, args, block):
-        self.type = type
-        self.name = name
-        self.args = args #list of tokens that rep args
-        self.block = block
-
-    def string(self):
-        #convert argument list to string
-        argListString = ''
-        for arg in self.args:
-            argListString = argListString + arg[0].value + ' ' + arg[1].value
-
-            #add comma to separate arguments unless it is last argument in last
-            if self.args.index(arg) != len(self.args)-1:
-                argListString += ', '
-
-        #convert statement list to string
-        statementListString = ''
-        for statement in self.block:
-            statementListString = statementListString + statement.string() + ';\n'
-
-        return f'({self.type.value} {self.name.value}({argListString})\n{{\n{statementListString}}})'
-
-class ReturnNode:
-    def __init__(self, val):
-        self.val = val
-    
-    def string(self):
-        return f'(return {self.val.value})'
-
-#ie int A = 5 + 3;
-class VarAssignNode:
-    def __init__(self, type, name, expr):
-        self.type = type
-        self.name = name
-        self.expr = expr
-
-    #returns string representing node
-    def string(self):
-        return f'({self.type.value} {self.name.value} = {self.expr.string()})'
-
-#node representing a single number (or variable)
-class NumberNode:
-    def __init__(self, val):
-        self.val = val
-
-    def string(self):
-        return f'{self.val.value}'
-
-class VarAccessNode:
-    def __init__(self, val):
-        self.val = val
-
-    def string(self):
-        return f'{self.val.value}'
-
-#ie 5 + 3
-class BinaryOpNode:
-    def __init__(self, left, op, right):
-        self.left = left
-        self.op = op
-        self.right = right
-
-    def string(self):
-        return f'({self.left.string()} {self.op.value} {self.right.string()})'
-
-#ie -5
-class UnOpNode:
-    def __init__(self, op, arg):
-        self.op = op
-        self.arg = arg
-
-    def string(self):
-        return f'({self.op.value} {self.arg.string()})'
+import Node
 
 #main class
 class myParser:
@@ -90,6 +15,10 @@ class myParser:
         self.idx += 1
         if self.idx < len(self.tokens):
             self.currentToken = self.tokens[self.idx]
+
+    #returns next token value
+    def nextToken(self):
+        return self.tokens[self.idx+1]
 
     #main function, for now assuming main node is expression
     def parse(self):
@@ -110,17 +39,17 @@ class myParser:
             self.advance()
             factor = self.factor()
             #should I return error in the case of -(-factor)? double negative should be fine...
-            return UnOpNode(token, factor)
+            return Node.UnOpNode(token, factor)
 
         #if current token is number or identifier
         elif token.type in (TokenTypes.T_INT, TokenTypes.T_FLOAT):
             #return number node and advance to next token
             self.advance()
-            return NumberNode(token)
+            return Node.NumberNode(token)
 
         elif token.type in (TokenTypes.T_IDEN):
             self.advance()
-            return VarAccessNode(token)
+            return Node.VarAccessNode(token)
 
         #if current token is LPAREN '('
         elif token.type is TokenTypes.T_LPAREN:
@@ -151,7 +80,7 @@ class myParser:
             opToken = self.currentToken
             self.advance()
             comp = self.comparison()
-            return UnOpNode(opToken, comp)
+            return Node.UnOpNode(opToken, comp)
 
         else:
             return self.binOp(self.expr, (TokenTypes.T_EQCOMP, TokenTypes.T_NOTEQ, TokenTypes.T_GTHAN, TokenTypes.T_LTHAN, TokenTypes.T_GTEQ, TokenTypes.T_LTEQ))
@@ -174,24 +103,63 @@ class myParser:
             #store expression
             expr = self.expr()
 
-            return VarAssignNode(varType, identifier, expr)
+            return Node.VarAssignNode(varType, identifier, expr)
+
+        elif self.currentToken.type is TokenTypes.T_IDEN:
+            if self.nextToken().type is TokenTypes.T_ASSIGN:
+                identifier = self.currentToken
+                self.advance()
+
+                #if not =, error
+                self.advance()
+
+                #store expression
+                expr = self.expr()
+
+                return Node.AccessVarNode(identifier, expr)
         
-        else:
-            return self.binOp(self.comparison, (TokenTypes.T_AND, TokenTypes.T_OR))
+        return self.binOp(self.comparison, (TokenTypes.T_AND, TokenTypes.T_OR))
 
     #to be main function for each line: determines if assignment, if, while, return, etc.
     def statement(self):
         if self.currentToken.type is TokenTypes.T_KEYWORD:
             if self.currentToken.value == 'return':
                 self.advance()
-                returnValue = self.currentToken
-
-                #if not semicolon error
-                self.advance()
+                returnValue = self.expr()
                 
-                return ReturnNode(returnValue)
+                return Node.ReturnNode(returnValue)
+
+            if self.currentToken.value == 'if':
+                self.advance()
+
+                return self.ifBranch()
+
         else:
             return self.equation()
+
+    def ifBranch(self):
+        #if not LPAREN, error
+        self.advance()
+
+        cond = self.equation()
+
+        #if not RPAREN, error
+        self.advance()
+
+        #if not LBRACE, error
+        self.advance()
+
+        statementList = []
+        while self.currentToken.type is not TokenTypes.T_RBRACE:
+            #loop through statements
+            statement = self.statement()
+
+            statementList.append(statement)
+
+            #if no semicolon, error
+            self.advance()
+
+        return Node.IfNode(cond, statementList)
 
 
     def function(self):
@@ -233,7 +201,7 @@ class myParser:
                 #if no semicolon, error
                 self.advance()
 
-        return FunctionNode(funcType, funcIden, argList, statementList)
+        return Node.FunctionNode(funcType, funcIden, argList, statementList)
 
     def binOp(self, func, ops):
         #stores left
@@ -244,7 +212,7 @@ class myParser:
             opToken = self.currentToken
             self.advance()
             right = func()
-            left = BinaryOpNode(left, opToken, right)
+            left = Node.BinaryOpNode(left, opToken, right)
 
         return left
 

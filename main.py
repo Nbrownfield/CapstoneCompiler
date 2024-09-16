@@ -2,8 +2,9 @@ import lexer
 import myParser
 import sys
 import TokenTypes
+import Node
 
-#open file
+#open file (sys.argv[1])
 programLines = []
 with open(sys.argv[1]) as f:
     programLines=[line.strip() for line in f.readlines()]

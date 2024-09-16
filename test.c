@@ -1,5 +1,9 @@
 int main()
 {
     int A = 1 + 1;
-    return 0;
+    if (A == 2)
+    {
+        A = 3;
+    }
+    return A*2;
 }
